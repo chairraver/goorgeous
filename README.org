@@ -1,11 +1,24 @@
 #+TITLE: chaseadamsio/goorgeous
 
+/Here is a list of local changes I did to the code/
+
+- Fixed a bug, where a document converted from markdown with pandoc
+  would panic hugo (defect links originally, around line 765 in
+  goorgeous.go)
+- A bunch of cosmetic changes because Emacs Go metalinter said so.
+- Handle some more attributes in the header of the document, which
+  does not yet result in changes in the HTML output.
+- Add some more tests for my changes.
+- Some changes to handle properties slightly different. Once against
+  after converting some markdown with pandoc, which would place
+  whitespace at the beginning of the line.
+
 [[https://travis-ci.org/chaseadamsio/goorgeous.svg?branch=master]]
 [[https://coveralls.io/repos/github/chaseadamsio/goorgeous/badge.svg?branch=master]]
 
 /goorgeous is a Go Org to HTML Parser./
 
-[[file:gopher_small.gif]] 
+[[file:gopher_small.gif]]
 
 *Pronounced: Go? Org? Yes!*
 
@@ -15,7 +28,7 @@
 - [[http://orgmode.org/][orgmode.org]]
 #+END_QUOTE
 
-The purpose of this package is to come as close as possible as parsing an =*.org= document into HTML, the same way one might publish [[http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html][with org-publish-html from Emacs]]. 
+The purpose of this package is to come as close as possible as parsing an =*.org= document into HTML, the same way one might publish [[http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html][with org-publish-html from Emacs]].
 
 * Installation
 
@@ -27,15 +40,15 @@ The purpose of this package is to come as close as possible as parsing an =*.org
 
 ** Org Headers
 
-To retrieve the headers from a =[]byte=, call =OrgHeaders= and it will return a =map[string]interface{}=: 
+To retrieve the headers from a =[]byte=, call =OrgHeaders= and it will return a =map[string]interface{}=:
 
 #+BEGIN_SRC go
   input := "#+title: goorgeous\n* Some Headline\n"
-  out, _ := goorgeous.OrgHeaders(input) 
+  out, _ := goorgeous.OrgHeaders(input)
 #+END_SRC
 
 #+BEGIN_SRC go
-  map[string]interface{}{ 
+  map[string]interface{}{
           "title": "goorgeous"
   }
 #+END_SRC
@@ -46,7 +59,7 @@ After importing =github.com/chaseadamsio/goorgeous=, you can call =Org= with a =
 
 #+BEGIN_SRC go
   input := "#+TITLE: goorgeous\n* Some Headline\n"
-  out := goorgeous.OrgCommon([]byte(input)) 
+  out := goorgeous.OrgCommon([]byte(input))
 #+END_SRC
 
 =out= will be:
@@ -55,7 +68,7 @@ After importing =github.com/chaseadamsio/goorgeous=, you can call =Org= with a =
   <h1>Some Headline</h1>/n
 #+END_SRC
 
-* Why? 
+* Why?
 
 First off, I've become an unapologetic user of Emacs & ever since finding =org-mode= I use it for anything having to do with writing content, organizing my life and keeping documentation of my days/weeks/months.
 

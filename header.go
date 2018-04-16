@@ -18,7 +18,6 @@ func ExtractOrgHeaders(r *bufio.Reader) (fm []byte, err error) {
 			return nil, err
 		}
 		if !charMatches(p[0], '#') && !charMatches(p[1], '+') {
-			endOfHeaders = false
 			break
 		}
 		line, _, err := r.ReadLine()
@@ -32,6 +31,7 @@ func ExtractOrgHeaders(r *bufio.Reader) (fm []byte, err error) {
 }
 
 var reHeader = regexp.MustCompile(`^#\+(\w+?): (.*)`)
+var reOptionToc = regexp.MustCompile(`toc:([^ ]*)`)
 
 // OrgHeaders find all of the headers from a byte slice and returns
 // them as a map of string interface
@@ -50,16 +50,26 @@ func OrgHeaders(input []byte) (map[string]interface{}, error) {
 			continue
 		}
 
-		key := string(matches[1])
+		key := strings.ToLower(string(matches[1]))
 		val := matches[2]
 		switch {
-		case strings.ToLower(key) == "tags" || strings.ToLower(key) == "categories" || strings.ToLower(key) == "aliases":
+		case key == "tags" || key == "categories" || key == "aliases":
 			bTags := bytes.Split(val, []byte(" "))
 			tags := make([]string, len(bTags))
 			for idx, tag := range bTags {
 				tags[idx] = string(tag)
 			}
 			out[key] = tags
+		case key == "option":
+			matchesToc := reOptionToc.FindSubmatch(val)
+			if len(matchesToc) >= 1 {
+				out["toc"] = "true"
+				if len(matchesToc) >= 2 {
+					if string(matchesToc[1]) == "nil" {
+						out["toc"] = "false"
+					}
+				}
+			}
 		default:
 			out[key] = string(val)
 		}

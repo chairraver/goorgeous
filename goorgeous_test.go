@@ -383,6 +383,10 @@ func TestRenderingLinksAndImages(t *testing.T) {
 			"this has [[https://github.com/chaseadamsio/goorgeous][goorgeous by chaseadamsio]] as a link.\n",
 			"<p>this has <a href=\"https://github.com/chaseadamsio/goorgeous\" title=\"goorgeous by chaseadamsio\">goorgeous by chaseadamsio</a> as a link.</p>\n",
 		},
+		"anchor-text-empty-url": {
+			"this has [[][goorgeous by chaseadamsio]] as a link.\n",
+			"<p>this has <a href=\"\" title=\"goorgeous by chaseadamsio\">goorgeous by chaseadamsio</a> as a link.</p>\n",
+		},
 		"image-basic": {
 			"this has [[file:https://github.com/chaseadamsio/goorgeous/img.png]] as an image.\n",
 			"<p>this has <img src=\"https://github.com/chaseadamsio/goorgeous/img.png\" alt=\"https://github.com/chaseadamsio/goorgeous/img.png\" title=\"https://github.com/chaseadamsio/goorgeous/img.png\" /> as an image.</p>\n",
@@ -542,6 +546,10 @@ func TestRenderingBlock(t *testing.T) {
 			"   #+BEGIN_CENTER\nthis is a\nmulti-lined centered block.\n   #+END_CENTER\n",
 			"<center>\n<p>\nthis is a\n</p>\n<p>\nmulti-lined centered block.\n</p>\n</center>\n",
 		},
+		"PROPERTIES_AFTER_HEADER": {
+			"* books\n  :PROPERTIES:\n  :CUSTOM_ID: books\n  :END:\n",
+			"<h1 id=\"books\">books</h1>\n",
+		},
 	}
 
 	testOrgCommon(testCases, t)
@@ -605,6 +613,10 @@ func TestRenderingPropertiesDrawer(t *testing.T) {
 	testCases := map[string]testCase{
 		"basic": {
 			"* Heading\n:PROPERTIES:\n:header-args: :tangle ~/.filename\n:END:\n next block.",
+			"<h1 id=\"heading\">Heading</h1>\n\n<p>next block.</p>\n",
+		},
+		"basic-with-whitespace": {
+			"* Heading\n  :PROPERTIES:\n  :header-args: :tangle ~/.filename\n  :END:\n next block.",
 			"<h1 id=\"heading\">Heading</h1>\n\n<p>next block.</p>\n",
 		},
 	}

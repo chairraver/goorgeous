@@ -1,6 +1,9 @@
 #+TITLE: Test File For chaseadamsio/goorgeous
 #+AUTHOR: Chase Adams
+#+DATE: 2017-12-24
 #+DESCRIPTION: Just another golang parser for org content!
+#+OPTIONS: toc:2
+#+TOC: true
 
 Have you ever wanted to parse org content with Go? Well now you can!
 
@@ -60,12 +63,12 @@ If you're curious what else it supports, you're in luck, you can find it all [[h
 ***** TODO [A]  Headline 5				 :tags:are:supported:
 ****** TODO [A]  Headline 6				 :tags:are:supported:
 
-- unordered 
+- unordered
 - lists
 - are
 - supported.
 
-1. ordered 
+1. ordered
 2. lists
 3. are
 4. supported.

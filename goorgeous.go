@@ -41,7 +41,7 @@ func NewParser(renderer blackfriday.Renderer) *parser {
 // OrgCommon is the easiest way to parse a byte slice of org content and makes assumptions
 // that the caller wants to use blackfriday's HTMLRenderer with XHTML
 func OrgCommon(input []byte) []byte {
-	renderer := blackfriday.HtmlRenderer(blackfriday.HTML_USE_XHTML, "", "")
+	renderer := blackfriday.HtmlRenderer(blackfriday.HTML_USE_XHTML|blackfriday.HTML_TOC, "", "")
 	return OrgOptions(input, renderer)
 }
 
@@ -149,9 +149,13 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 		case isPropertyDrawer(data) || marker == "PROPERTIES":
 			if marker == "" {
 				marker = "PROPERTIES"
+				continue
 			}
-			if bytes.Equal(data, []byte(":END:")) {
-				marker = ""
+			matches := reProperties.FindSubmatch(data)
+			if len(matches) > 0 {
+				if string(matches[1]) == "END" {
+					marker = ""
+				}
 			}
 			continue
 		case isBlock(data) || marker != "":
@@ -218,7 +222,7 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 				}
 			}
 		case isTable(data):
-			if inTable != true {
+			if !inTable {
 				inTable = true
 			}
 			tmpBlock.Write(data)
@@ -230,7 +234,7 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 		case isHeadline(data):
 			p.generateHeadline(&output, data)
 		case isDefinitionList(data):
-			if inList != true {
+			if !inList {
 				listType = "dl"
 				inList = true
 			}
@@ -245,7 +249,7 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 			p.inline(&work, matches[2])
 			p.r.ListItem(&tmpBlock, work.Bytes(), flags)
 		case isUnorderedList(data):
-			if inList != true {
+			if !inList {
 				listType = "ul"
 				inList = true
 			}
@@ -254,7 +258,7 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 			p.inline(&work, matches[2])
 			p.r.ListItem(&tmpBlock, work.Bytes(), 0)
 		case isOrderedList(data):
-			if inList != true {
+			if !inList {
 				listType = "ol"
 				inList = true
 			}
@@ -274,25 +278,24 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 		case isHorizontalRule(data):
 			p.r.HRule(&output)
 		case isExampleLine(data):
-			if inParagraph == true {
+			if inParagraph {
 				if len(tmpBlock.Bytes()) > 0 {
 					p.generateParagraph(&output, tmpBlock.Bytes()[:len(tmpBlock.Bytes())-1])
 					inParagraph = false
 				}
 				tmpBlock.Reset()
 			}
-			if inFixedWidthArea != true {
+			if !inFixedWidthArea {
 				tmpBlock.WriteString("<pre class=\"example\">\n")
 				inFixedWidthArea = true
 			}
 			matches := reExampleLine.FindSubmatch(data)
 			tmpBlock.Write(matches[1])
 			tmpBlock.WriteString("\n")
-			break
 		default:
-			if inParagraph == false {
+			if !inParagraph {
 				inParagraph = true
-				if inFixedWidthArea == true {
+				if inFixedWidthArea {
 					if tmpBlock.Len() > 0 {
 						tmpBlock.WriteString("</pre>")
 						output.Write(tmpBlock.Bytes())
@@ -307,9 +310,9 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 	}
 
 	if len(tmpBlock.Bytes()) > 0 {
-		if inParagraph == true {
+		if inParagraph {
 			p.generateParagraph(&output, tmpBlock.Bytes()[:len(tmpBlock.Bytes())-1])
-		} else if inFixedWidthArea == true {
+		} else if inFixedWidthArea {
 			tmpBlock.WriteString("</pre>\n")
 			output.Write(tmpBlock.Bytes())
 		}
@@ -397,7 +400,10 @@ func (p *parser) generateHeadline(out *bytes.Buffer, data []byte) {
 			out.WriteByte(' ')
 		}
 
-		p.inline(out, headline)
+		var testBuffer bytes.Buffer
+		testBuffer.Write(headline)
+
+		p.inline(out, testBuffer.Bytes())
 
 		if tagsFound > 0 {
 			for _, tag := range tags {
@@ -519,9 +525,10 @@ func (p *parser) generateTable(output *bytes.Buffer, data []byte) {
 }
 
 // ~~ Property Drawers
+var reProperties = regexp.MustCompile(`^\s*:(PROPERTIES|END):\s*`)
 
 func isPropertyDrawer(data []byte) bool {
-	return bytes.Equal(data, []byte(":PROPERTIES:"))
+	return reProperties.Match(data)
 }
 
 // ~~ Dynamic Blocks
@@ -651,7 +658,7 @@ func findLastCharInInline(data []byte, char byte) int {
 		if data[i] == char {
 			if len(data) == i+1 || (len(data) > i+1 && isAcceptablePostClosingChar(data[i+1])) {
 				last = i
-				timesFound += 1
+				timesFound++
 			}
 		}
 	}
@@ -722,7 +729,7 @@ func generateStrikethrough(p *parser, out *bytes.Buffer, data []byte, offset int
 }
 
 // ~~ Images and Links (inc. Footnote)
-var reLinkOrImg = regexp.MustCompile(`\[\[(.+?)\]\[?(.*?)\]?\]`)
+// unused: var reLinkOrImg = regexp.MustCompile(`\[\[(.+?)\]\[?(.*?)\]?\]`)
 
 func generateLinkOrImg(p *parser, out *bytes.Buffer, data []byte, offset int) int {
 	data = data[offset+1:]
@@ -747,7 +754,7 @@ func generateLinkOrImg(p *parser, out *bytes.Buffer, data []byte, offset int) in
 	for i < len(data) {
 		currChar := data[i]
 		switch {
-		case charMatches(currChar, ']') && closedLink == false:
+		case charMatches(currChar, ']') && !closedLink:
 			if isImage {
 				hyperlink = data[start+5 : i]
 			} else if isFootnote {
@@ -756,10 +763,10 @@ func generateLinkOrImg(p *parser, out *bytes.Buffer, data []byte, offset int) in
 					p.notes = append(p.notes, footnotes{string(refid), "DEFINITION NOT FOUND"})
 					p.r.FootnoteRef(out, refid, len(p.notes))
 					return i + 2
-				} else {
-					return 0
 				}
-			} else if bytes.Equal(data[i-4:i], []byte(".org")) {
+				return 0
+
+			} else if i >= 4 && bytes.Equal(data[i-4:i], []byte(".org")) {
 				orgStart := start
 				if bytes.Equal(data[orgStart:orgStart+2], []byte("./")) {
 					orgStart = orgStart + 1
@@ -772,18 +779,18 @@ func generateLinkOrImg(p *parser, out *bytes.Buffer, data []byte, offset int) in
 		case charMatches(currChar, '['):
 			start = i + 1
 			hasContent = true
-		case charMatches(currChar, ']') && closedLink == true && hasContent == true && isImage == true:
+		case charMatches(currChar, ']') && closedLink && hasContent && isImage:
 			p.r.Image(out, hyperlink, data[start:i], data[start:i])
 			return i + 3
-		case charMatches(currChar, ']') && closedLink == true && hasContent == true:
+		case charMatches(currChar, ']') && closedLink && hasContent:
 			var tmpBuf bytes.Buffer
 			p.inline(&tmpBuf, data[start:i])
 			p.r.Link(out, hyperlink, tmpBuf.Bytes(), tmpBuf.Bytes())
 			return i + 3
-		case charMatches(currChar, ']') && closedLink == true && hasContent == false && isImage == true:
+		case charMatches(currChar, ']') && closedLink && !hasContent && isImage:
 			p.r.Image(out, hyperlink, hyperlink, hyperlink)
 			return i + 2
-		case charMatches(currChar, ']') && closedLink == true && hasContent == false:
+		case charMatches(currChar, ']') && closedLink && !hasContent:
 			p.r.Link(out, hyperlink, hyperlink, hyperlink)
 			return i + 2
 		}

@@ -22,7 +22,7 @@ func TestExtractOrgHeaders(t *testing.T) {
 	}
 
 	if *update {
-		if err := ioutil.WriteFile(golden, fm, 0644); err != nil {
+		if err = ioutil.WriteFile(golden, fm, 0644); err != nil {
 			t.Errorf("failed to write %s file: %s", golden, err)
 		}
 		return
@@ -81,6 +81,27 @@ func TestOrgHeaders(t *testing.T) {
 				"author":      "Chase Adams",
 				"description": "This is my description!",
 				"aliases":     []string{"/org/content", "/org/mode", "/hugo"},
+			}},
+		"basic-happy-path-with-toc": {"#+title: my org mode tags content\n#+author: Chase Adams\n#+description: This is my description!\n#+toc: true\n",
+			map[string]interface{}{
+				"title":       "my org mode tags content",
+				"author":      "Chase Adams",
+				"description": "This is my description!",
+				"toc":         "true",
+			}},
+		"basic-happy-path-with-option-toc": {"#+title: my org mode tags content\n#+author: Chase Adams\n#+description: This is my description!\n#+option: toc:t\n",
+			map[string]interface{}{
+				"title":       "my org mode tags content",
+				"author":      "Chase Adams",
+				"description": "This is my description!",
+				"toc":         "true",
+			}},
+		"basic-happy-path-with-option-no-toc": {"#+title: my org mode tags content\n#+author: Chase Adams\n#+description: This is my description!\n#+option: toc:nil\n",
+			map[string]interface{}{
+				"title":       "my org mode tags content",
+				"author":      "Chase Adams",
+				"description": "This is my description!",
+				"toc":         "false",
 			}},
 	}
 
